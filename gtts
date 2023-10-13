@@ -1,0 +1,12 @@
+from gtts import gTTS
+
+# Text to be converted to speech
+text = "こんにちは、私の名前はSuguirasanです。これはテキスト読み上げの例です。"
+
+# Generate speech with male voice
+tts_male = gTTS(text, lang='ja')
+tts_male.save('male_voice.mp3')
+
+# # Generate speech with female voice
+# tts_female = gTTS(text, lang='en-au')
+# tts_female.save('female_voice.mp3')

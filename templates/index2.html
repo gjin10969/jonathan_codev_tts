@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>rvc-vtv</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        /* Hide specific elements */
+        .hide-1,
+        #f0-method {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Voice to Voice</h1>
+        <form id="tts-form" class="mb-4">
+            <div class="hide-1">
+                <label for="speed" class="form-label">Speed of Speech(%):</label>
+                <input type="number" id="speed" class="form-control" value="0" required>
+            </div>
+            <!-- <div class="mb-3">
+                <label for="tts-text" class="form-label">Text Input:</label>
+                <textarea id="tts-text" class="form-control" rows="3" required></textarea>
+            </div> -->
+            <div class = "mb-3">
+                <label for="input_audio">Input Voice:</label>
+                <input type="file" id="input_audio" name="input_audio" accept="audio/*">
+            </div>
+            <div class = "mb-3">
+                <label >or use mic:</label>
+                <button id="startButton">Start Recording</button>
+                <button id="stopButton" disabled>Stop Recording</button>
+                <button id="saveButton" disabled>Save Recording</button>
+                <button id="resetButton" disabled>Reset Recording</button>
+            </div>
+            <div class="mb-3">
+                <label for="model-name" class="form-label">SELECT YOUR FAVORITE IDOL VOICE:</label>
+                <select id="model-name" class="form-select" required>
+                    {% for model in models %}
+                        <option value="{{ model }}">{{ model }}</option>
+                    {% endfor %}
+
+                </select>
+            </div>
+            
+            <!-- <div class="mb-3">
+                <label for="tts-voice" class="form-label">Text to Speech User:</label>
+                <select id="tts-voice" class="form-select" required>
+                    {% for voice in tts_voices %}
+                        {% if voice == 'en-US-ChristopherNeural-Male' %}
+                            <option value="{{ voice }}" selected>{{ voice }}</option>
+                        {% else %}
+                            <option value="{{ voice }}">{{ voice }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div> -->
+            <div class="mb-3">
+                <label for="f0-key-up" class="form-label">Adjust Tone of Voice</label>
+                <input type="number" id="f0-key-up" class="form-control" value="0" required>
+            </div>
+            <div class="hide-1">
+                <label for="f0-method" class="form-label">Pitch extraction method (pm: very fast, low quality, rmvpe: a little slow, high quality)                    :</label>
+                <select id="f0-method" class="form-select" required>
+                    <option value="rmvpe">rmvpe</option>
+                </select>
+            </div>
+            <div class="hide-1">
+                <label for="index-rate" class="form-label">Index Rate:</label>
+                <input type="number" id="index-rate" class="form-control" value="0.88" step="0.01" required>
+            </div>
+            <div class="hide-1">
+                <label for="protect" class="form-label">Protect:</label>
+                <input type="number" id="protect" class="form-control" value="0.33" step="0.01" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Play</button>
+<!--  -->
+            
+
+            <!--  -->
+        </form>
+        <div id="result" class="mt-4"></div>
+    </div>
+
+<script>
+    const form = document.getElementById('tts-form');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        resultDiv.innerHTML = 'Generating audio please wait!...';
+
+        const data = {
+            model_name: document.getElementById('model-name').options[document.getElementById('model-name').selectedIndex].value,
+            speed: parseInt(document.getElementById('speed').value),
+            f0_up_key: parseInt(document.getElementById('f0-key-up').value),
+            f0_method: document.getElementById('f0-method').value,
+            index_rate: parseFloat(document.getElementById('index-rate').value),
+            protect: parseFloat(document.getElementById('protect').value),
+        };
+
+        const inputAudio = document.getElementById('input_audio').files[0];
+        const formData = new FormData();
+        formData.append('input_audio', inputAudio);
+
+        for (const key in data) {
+            formData.append(key, data[key]);
+        }
+
+        try {
+            const response = await fetch('/vtv/', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            console.log(result);
+            if (result.info) {
+            resultDiv.innerHTML = `<p>${result.info}</p>`;
+            } else {
+                resultDiv.innerHTML = '<p>Successfully</p>';
+            }
+            // resultDiv.innerHTML = `<p>${result.info}</p>`;
+
+            if (result.result_) {
+                resultDiv.innerHTML += `
+                    <audio controls>
+                        <source src="${result.result_}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>`;
+                
+                    // <audio controls>
+                    //     <source src="https://da9f-112-202-164-92.ngrok-free.app/download/output.mp3" type="audio/mpeg">
+                    //     Your browser does not support the audio element.
+                    // </audio>`;
+            }
+        } catch (error) {
+            console.error(error);
+            resultDiv.innerHTML = 'An error occurred during audio generation.';
+        }
+    });
+</script>
+<audio controls id="audioPlayer" style="display: none;"></audio>
+<script>
+  let mediaRecorder;
+  let recordedChunks = [];
+
+  const startButton = document.getElementById('startButton');
+  const stopButton = document.getElementById('stopButton');
+  const saveButton = document.getElementById('saveButton');
+  const resetButton = document.getElementById('resetButton');
+  const audioPlayer = document.getElementById('audioPlayer');
+
+  startButton.addEventListener('click', startRecording);
+  stopButton.addEventListener('click', stopRecording);
+  saveButton.addEventListener('click', saveRecording);
+  resetButton.addEventListener('click', resetRecording);
+
+  function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+        mediaRecorder.onstop = () => {
+          audioPlayer.src = URL.createObjectURL(new Blob(recordedChunks));
+          audioPlayer.style.display = 'block';
+          saveButton.disabled = false;
+          resetButton.disabled = false;
+        };
+        mediaRecorder.start();
+        startButton.disabled = true;
+        stopButton.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error accessing microphone:', error);
+      });
+  }
+
+  function stopRecording() {
+    mediaRecorder.stop();
+    startButton.disabled = false;
+    stopButton.disabled = true;
+  }
+
+  function saveRecording() {
+    const blob = new Blob(recordedChunks, { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'recorded_audio.wav';
+    a.click();
+    recordedChunks = [];
+    audioPlayer.style.display = 'none';
+    saveButton.disabled = true;
+    resetButton.disabled = true;
+  }
+
+  function resetRecording() {
+    recordedChunks = [];
+    audioPlayer.style.display = 'none';
+    saveButton.disabled = true;
+    resetButton.disabled = true;
+  }
+</script>
+</body>
+</html>
