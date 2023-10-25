@@ -39,16 +39,16 @@ is_half=True
 # download and load all models
 preload_models(
     text_use_gpu=True,
-    text_use_small=True,
+    text_use_small=False,
     text_model_path=semantic_path,
     coarse_use_gpu=True,
-    coarse_use_small=True,
+    coarse_use_small=False,
     coarse_model_path=coarse_path,
     fine_use_gpu=True,
-    fine_use_small=True,
+    fine_use_small=False,
     fine_model_path=fine_path,
     codec_use_gpu=True,
-    force_reload=False,
+    force_reload=True,
     path="models"
 )
 
