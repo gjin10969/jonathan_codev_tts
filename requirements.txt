@@ -16,3 +16,4 @@ sqlalchemy
 pymysql
 fugashi
 unidic-lite
+nest_asyncio
